@@ -87,9 +87,19 @@ type LobbyMap struct {
 }
 
 func (m *LobbyMap) CreateLobby(owner *websocket.Conn) (*Lobby, error) {
-	id, err := gonanoid.Generate("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 6)
-	if err != nil {
-		return nil, err
+	m.Lock.Lock()
+	defer m.Lock.Unlock()
+	var id string
+	var err error
+	for {
+		id, err = gonanoid.Generate("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 6)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := m.Map[id]; !ok {
+			break
+		}
 	}
 
 	lobby := &Lobby{
@@ -100,9 +110,6 @@ func (m *LobbyMap) CreateLobby(owner *websocket.Conn) (*Lobby, error) {
 		register:   make(chan *Player),
 		unregister: make(chan *Player),
 	}
-
-	m.Lock.Lock()
-	defer m.Lock.Unlock()
 
 	m.Map[id] = lobby
 
@@ -140,7 +147,7 @@ const (
 	LobbyNotFoundError = JoinLobbyError("Lobby not found")
 )
 
-func (m *LobbyMap) JoinLobby(id string, playerConn *websocket.Conn) (*Lobby, error) {
+func (m *LobbyMap) JoinLobby(id string, playerConn *websocket.Conn, playerId string) (*Lobby, error) {
 	m.Lock.Lock()
 	defer m.Lock.Unlock()
 	lobby, ok := m.Map[id]
@@ -148,10 +155,13 @@ func (m *LobbyMap) JoinLobby(id string, playerConn *websocket.Conn) (*Lobby, err
 		return nil, LobbyNotFoundError
 	}
 
-	playerId, err := gonanoid.New()
-	if err != nil {
-		log.Printf("Failed to generate player id: %v", err)
-		return nil, err
+	if playerId == "" {
+		var err error
+		playerId, err = gonanoid.New()
+		if err != nil {
+			log.Printf("Failed to generate player id: %v", err)
+			return nil, err
+		}
 	}
 
 	player := &Player{Conn: playerConn, Id: playerId}
@@ -192,8 +202,6 @@ func (l *Lobby) Run(ctx context.Context) {
 	for {
 		select {
 		case player := <-l.register:
-			l.Players[player.Id] = player
-
 			go func() {
 				for {
 					_, data, err := player.Conn.Read(ctx)
@@ -207,6 +215,16 @@ func (l *Lobby) Run(ctx context.Context) {
 				}
 			}()
 
+			// Replace player if already exists
+			p, playerExists := l.Players[player.Id]
+			if playerExists {
+				p.Conn.Close(websocket.StatusNormalClosure, "Connection replaced")
+				l.Players[player.Id] = player
+				continue
+			}
+
+			l.Players[player.Id] = player
+
 			playerJoinMessage := NewPlayerJoined(player.Id)
 
 			jsonData, err := json.Marshal(playerJoinMessage)
@@ -215,10 +233,9 @@ func (l *Lobby) Run(ctx context.Context) {
 				return
 			}
 
+			player.Conn.Write(ctx, websocket.MessageText, jsonData)
 			l.Owner.Conn.Write(ctx, websocket.MessageText, jsonData)
 
-		case player := <-l.unregister:
-			delete(l.Players, player.Id)
 		case message := <-l.incoming:
 			var registerPlayerInfo RegisterPlayerInfo
 			err := json.Unmarshal(message.Data, &registerPlayerInfo)
@@ -277,16 +294,20 @@ func handleWs(ctx *AppContext) http.HandlerFunc {
 		if lobbyId != "" {
 			_, ok := ctx.Lobbies.GetLobby(lobbyId)
 			if !ok {
-				http.Error(w, "Lobby not found", http.StatusNotFound)
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte("Lobby not found"))
 				return
 			}
 		}
 
-		c, err := websocket.Accept(w, r, &websocket.AcceptOptions{})
+		c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+			OriginPatterns: []string{"localhost:5173", "127.0.0.1:5173"},
+		})
 		if err != nil {
 			log.Println(err)
 			return
 		}
+		c.SetReadLimit(1024 * 1024 * 1024)
 
 		if lobbyId == "" {
 			_, err := ctx.Lobbies.CreateLobby(c)
@@ -295,10 +316,11 @@ func handleWs(ctx *AppContext) http.HandlerFunc {
 				return
 			}
 		} else {
-			_, err := ctx.Lobbies.JoinLobby(lobbyId, c)
+			playerId := r.URL.Query().Get("player")
+
+			_, err := ctx.Lobbies.JoinLobby(lobbyId, c, playerId)
 			if err == LobbyNotFoundError {
-				c.Close(websocket.StatusPolicyViolation, "Lobby not found")
-				http.Error(w, "Lobby not found", http.StatusNotFound)
+				c.Close(3000, "Lobby not found")
 				return
 			}
 			if err != nil {
