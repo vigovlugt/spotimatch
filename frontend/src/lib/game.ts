@@ -21,7 +21,13 @@ export type IntroStage = {
 export type RoundStage = {
     type: "round";
     round: number;
-    subStage: "intro" | "listen" | "submit" | "reveal";
+    subStage:
+        | "intro"
+        | "listen"
+        | "submit"
+        | "reveal-match"
+        | "reveal-picks"
+        | "leaderboard";
     pickByPlayer: Record<string, string>;
     song: string;
 };

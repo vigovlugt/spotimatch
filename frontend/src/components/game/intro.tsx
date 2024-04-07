@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Card } from "../ui/card";
 import { useTimeoutFn } from "react-use";
 import { useGameState } from "@/stores/game";
+import { PROD } from "@/lib/utils";
 
 export function Intro() {
     const state = useGameState();
@@ -16,7 +17,7 @@ export function Intro() {
                 song: "",
             };
         },
-        import.meta.env.PROD ? 5000 : 0
+        PROD ? 5000 : 0
     );
 
     return (
