@@ -1,0 +1,12 @@
+[Unit]
+Description=SpotiMatch Lobby Server
+
+[Service]
+ExecStart=/home/vigo/lobby-server
+User=vigo
+Group=vigo
+UMask=007
+Environment="PORT=80"
+
+[Install]
+WantedBy=multi-user.target

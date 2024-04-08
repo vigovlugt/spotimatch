@@ -1,13 +1,19 @@
 import { motion } from "framer-motion";
 import { Card } from "../ui/card";
-import { useTimeoutFn, useAudio, useInterval } from "react-use";
+import { useTimeoutFn, useAudio, useInterval, useEvent } from "react-use";
 import { useGameData, useGameState } from "@/stores/game";
 import { useSnapshot } from "valtio";
-import { RoundStage } from "@/lib/game";
+import {
+    RoundStage,
+    assignWinnings,
+    getMatches,
+    getTrack,
+    newRoundState,
+} from "@/lib/game";
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { PROD, cn } from "@/lib/utils";
-import { CircleCheck } from "lucide-react";
+import { ArrowDown, CircleCheck, Heart, Pointer } from "lucide-react";
 
 export function Round() {
     const state = useGameState();
@@ -64,8 +70,8 @@ function Listen() {
     const state = useGameState();
     const data = useGameData();
     const snap = useSnapshot(state);
-    const track = data.players[0].topTracks[0];
-    const [audio, audioState, , ref] = useAudio({
+    const track = getTrack(data.players, (snap.stage as RoundStage).trackId);
+    const [audio, audioState, controls, ref] = useAudio({
         src: track.preview_url!,
         autoPlay: true,
         loop: false,
@@ -79,7 +85,12 @@ function Listen() {
         ref.current!.addEventListener("ended", () => {
             (state.stage as RoundStage).subStage = "submit";
         });
-    }, [ref, state.stage]);
+        assignWinnings(state, data);
+    }, [data, ref, state, state.stage]);
+
+    useEvent("click", () => {
+        controls.play();
+    });
 
     if (!PROD) {
         (state.stage as RoundStage).subStage = "submit";
@@ -110,7 +121,7 @@ function Listen() {
                             src={track.album.images[0].url}
                             width={640}
                             height={640}
-                            className="rounded-lg"
+                            className="rounded-lg h-[640px] w-[640px] object-cover"
                         />
                         <h1 className="text-4xl font-bold">{track.name}</h1>
                         <h2 className="text-2xl text-white/60">
@@ -142,7 +153,7 @@ function Submit() {
     const state = useGameState();
     const data = useGameData();
     const snap = useSnapshot(state);
-    const track = data.players[0].topTracks[0];
+    const track = getTrack(data.players, (snap.stage as RoundStage).trackId);
 
     const [pointingTime, setPointingTime] = useState(PROD ? 10 : -3);
 
@@ -227,7 +238,7 @@ function Submit() {
                                                 src={p.profile.images[0].url}
                                                 height={64}
                                                 width={64}
-                                                className="rounded"
+                                                className="rounded object-cover h-[64px] w-[64px]"
                                             ></img>
                                         </button>
                                     ))}
@@ -241,7 +252,7 @@ function Submit() {
                     </motion.div>
                 )}
             </Card>
-            <Card className="grow-0 shrink-0 flex h-full flex-col justify-center items-center text-center gap-4">
+            <Card className="grow-0 shrink-0 flex h-full flex-col justify-center items-center text-center gap-4 px-16">
                 <a
                     href={track.external_urls.spotify}
                     target="_blank"
@@ -251,7 +262,7 @@ function Submit() {
                         src={track.album.images[0].url}
                         width={256}
                         height={256}
-                        className="rounded-lg"
+                        className="rounded-lg object-cover h-[256px] w-[256px]"
                     />
                     <h2 className="text-2xl font-bold max-w-[500px]">
                         {track.name}
@@ -273,12 +284,14 @@ function RevealMatch() {
         throw new Error("Invalid stage type");
     }
 
-    const track = data.players[0].topTracks[0];
+    const track = getTrack(data.players, (snap.stage as RoundStage).trackId);
 
-    // TODO
-    const matchIds = data.players.map((p) => p.profile.id);
+    const matchIds = getMatches(
+        data.players,
+        (snap.stage as RoundStage).trackId
+    );
     const matches = matchIds.map(
-        (id) => data.players.find((p) => p.profile.id === id)!
+        (id) => data.players.find((p) => p.profile.id === id.profile.id)!
     );
 
     useTimeoutFn(
@@ -291,7 +304,7 @@ function RevealMatch() {
     return (
         <Card className="h-full flex justify-center items-center text-center">
             <motion.div
-                className="flex gap-6 flex-col"
+                className="flex gap-4 flex-col items-center"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
@@ -307,10 +320,10 @@ function RevealMatch() {
                             key={match.profile.id}
                         >
                             <img
-                                src={match.profile.images[0].url}
+                                src={match.profile.images.at(-1)!.url}
                                 height={256}
                                 width={256}
-                                className="rounded"
+                                className="rounded object-cover h-[256px] w-[256px]"
                             ></img>
                             <h3 className="text-2xl font-bold">
                                 {match.profile.display_name}
@@ -318,6 +331,7 @@ function RevealMatch() {
                         </div>
                     ))}
                 </div>
+                <Heart className="w-12 h-12 text-primary fill-current" />
                 <a
                     href={track.external_urls.spotify}
                     target="_blank"
@@ -327,7 +341,7 @@ function RevealMatch() {
                         src={track.album.images[0].url}
                         width={256}
                         height={256}
-                        className="rounded-lg"
+                        className="rounded-lg object-cover h-[256px] w-[256px]"
                     />
                     <h2 className="text-2xl font-bold max-w-[500px]">
                         {track.name}
@@ -349,30 +363,30 @@ function RevealPicks() {
         throw new Error("Invalid stage type");
     }
 
-    // TODO
-    const matchIds = data.players.map((p) => p.profile.id);
+    const matchIds = getMatches(
+        data.players,
+        (snap.stage as RoundStage).trackId
+    ).map((p) => p.profile.id);
 
     useTimeoutFn(
         () => {
             if ((state.stage as RoundStage).round % 5 === 0) {
                 (state.stage as RoundStage).subStage = "leaderboard";
             } else {
-                state.stage = {
-                    type: "round",
-                    round: (snap.stage as RoundStage).round + 1,
-                    subStage: "intro",
-                    pickByPlayer: {},
-                    song: "",
-                };
+                state.stage = newRoundState(
+                    data.players,
+                    state.previousSongs,
+                    (snap.stage as RoundStage).round
+                );
             }
         },
-        PROD ? 5000 : 0
+        PROD ? 5000 * 100000 : 0
     );
 
     return (
         <Card className="h-full flex justify-center items-center text-center">
             <motion.div
-                className="flex gap-6 flex-col"
+                className="flex gap-4 flex-col"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
@@ -395,21 +409,30 @@ function RevealPicks() {
                                 key={player.profile.id}
                             >
                                 <img
-                                    src={player.profile.images[0].url}
+                                    src={player.profile.images.at(-1)!.url}
                                     height={128}
                                     width={128}
                                     className={cn(
-                                        "rounded",
+                                        "rounded object-cover h-[128px] w-[128px]",
                                         isCorrect && "ring ring-primary"
                                     )}
                                 ></img>
                                 <h3 className="text-md font-bold max-w-[128px] overflow-hidden text-ellipsis">
                                     {player.profile.display_name}
                                 </h3>
-                                <CircleCheck className="absolute top-0 right-0 w-7 h-7 p-0.5 text-primary bg-green-100 rounded-full" />
+                                {isCorrect && (
+                                    <CircleCheck className="absolute top-0 right-0 w-7 h-7 p-0.5 text-primary bg-green-100 rounded-full" />
+                                )}
                             </div>
                         );
                     })}
+                </div>
+                <div className="flex gap-3 justify-center">
+                    {data.players.map(() => (
+                        <div className="w-[128px] flex items-center justify-center">
+                            <ArrowDown className="w-10 h-10 text-white" />
+                        </div>
+                    ))}
                 </div>
                 <div className="flex gap-3 justify-center">
                     {data.players.map((player) => {
@@ -433,10 +456,13 @@ function RevealPicks() {
                                 ) : (
                                     <>
                                         <img
-                                            src={picked.profile.images[0].url}
+                                            src={
+                                                picked.profile.images.at(-1)!
+                                                    .url
+                                            }
                                             height={128}
                                             width={128}
-                                            className="rounded"
+                                            className="rounded object-cover h-[128px] w-[128px]"
                                         ></img>
                                         <h3 className="text-md font-bold w-full max-w-[128px] overflow-hidden text-ellipsis">
                                             {picked.profile.display_name}
@@ -468,13 +494,11 @@ function Leaderboard() {
 
     useTimeoutFn(
         () => {
-            state.stage = {
-                type: "round",
-                round: (snap.stage as RoundStage).round + 1,
-                subStage: "intro",
-                pickByPlayer: {},
-                song: "",
-            };
+            state.stage = newRoundState(
+                data.players,
+                state.previousSongs,
+                (snap.stage as RoundStage).round
+            );
         },
         PROD ? 15000 : 0
     );
@@ -482,7 +506,7 @@ function Leaderboard() {
     return (
         <Card className="h-full flex justify-center items-center text-center">
             <motion.div
-                className="flex flex-col gap-1"
+                className="flex gap-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -512,7 +536,7 @@ function Leaderboard() {
                                 src={player.profile.images[0].url}
                                 height={64}
                                 width={64}
-                                className="rounded-full"
+                                className="rounded-full object-cover h-[64px] w-[64px]"
                             ></img>
                         </div>
                     );

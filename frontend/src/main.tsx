@@ -13,6 +13,11 @@ declare module "@tanstack/react-router" {
     }
 }
 
+// Spotify redirects to localhost
+if (import.meta.env.DEV && location.hostname === "127.0.0.1") {
+    location.href = location.origin.replace("127.0.0.1", "localhost");
+}
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
         <Toaster richColors />

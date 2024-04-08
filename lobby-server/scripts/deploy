@@ -1,0 +1,10 @@
+#!/bin/bash
+
+GOOS=linux GOARCH=arm GOARM=7 go build .
+
+scp -i ~/rpikey ./config/lobby-server.service vigo@192.168.178.172:/home/vigo/lobby-server.service 
+ssh -i ~/rpikey vigo@192.168.178.172 "sudo mv /home/vigo/lobby-server.service /lib/systemd/system/lobby-server.service"
+scp -i ~/rpikey ./config/lobby-server.service vigo@192.168.178.172:/lib/systemd/system/lobby-server.service 
+scp -i ~/rpikey ./lobby-server vigo@192.168.178.172:/home/vigo/lobby-server
+
+ssh vigo@192.168.178.172 -i ~/rpikey "sudo systemctl enable lobby-server && sudo systemctl stop lobby-server && sudo systemctl daemon-reload && sudo systemctl start lobby-server"

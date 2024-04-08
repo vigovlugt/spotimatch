@@ -1,21 +1,17 @@
 import { motion } from "framer-motion";
 import { Card } from "../ui/card";
 import { useTimeoutFn } from "react-use";
-import { useGameState } from "@/stores/game";
+import { useGameData, useGameState } from "@/stores/game";
 import { PROD } from "@/lib/utils";
+import { newRoundState } from "@/lib/game";
 
 export function Intro() {
     const state = useGameState();
+    const data = useGameData();
 
     useTimeoutFn(
         () => {
-            state.stage = {
-                type: "round",
-                round: 1,
-                subStage: "intro",
-                pickByPlayer: {},
-                song: "",
-            };
+            state.stage = newRoundState(data.players, state.previousSongs, 0);
         },
         PROD ? 5000 : 0
     );
