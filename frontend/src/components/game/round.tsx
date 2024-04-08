@@ -13,7 +13,7 @@ import {
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { PROD, cn } from "@/lib/utils";
-import { ArrowDown, CircleCheck, Heart, Pointer } from "lucide-react";
+import { ArrowDown, CircleCheck, Heart } from "lucide-react";
 
 export function Round() {
     const state = useGameState();
