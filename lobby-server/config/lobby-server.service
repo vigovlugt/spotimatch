@@ -3,8 +3,8 @@ Description=SpotiMatch Lobby Server
 
 [Service]
 ExecStart=/home/vigo/lobby-server
-User=vigo
-Group=vigo
+User=root
+Group=root
 UMask=007
 Environment="PORT=80"
 

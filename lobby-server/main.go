@@ -283,7 +283,10 @@ func run() error {
 	mux.HandleFunc("/ws", handleWs(appContext))
 
 	log.Println("Listening on http://localhost:" + port)
-	http.ListenAndServe("0.0.0.0:"+port, mux)
+	err := http.ListenAndServe("0.0.0.0:"+port, mux)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -301,7 +304,7 @@ func handleWs(ctx *AppContext) http.HandlerFunc {
 		}
 
 		c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-			OriginPatterns: []string{"localhost:5173", "127.0.0.1:5173"},
+			OriginPatterns: []string{"localhost:5173", "127.0.0.1:5173", "spotimatch.pages.dev"},
 		})
 		if err != nil {
 			log.Println(err)
