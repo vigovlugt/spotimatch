@@ -380,7 +380,7 @@ function RevealPicks() {
                 );
             }
         },
-        PROD ? 5000 * 100000 : 0
+        PROD ? 5000 : 0
     );
 
     return (
