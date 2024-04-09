@@ -1,11 +1,12 @@
 import { Card } from "@/components/ui/card";
 import { createLobbyOwner } from "@/lib/lobby";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { LoaderCircle, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GameData, setGameData } from "@/lib/game";
+import { toCanvas } from "qrcode";
 
 export const Route = createFileRoute("/host")({
     loader: async () => {
@@ -28,20 +29,42 @@ function Host() {
 
     const joinUrl = `${location.origin.replace(/^https?:\/\//, "")}/${lobbyOwner.lobbyId}`;
 
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    useEffect(() => {
+        if (!canvasRef.current) return;
+        toCanvas(
+            canvasRef.current,
+            `${location.origin}/${lobbyOwner.lobbyId}`,
+            {
+                width: 256,
+            }
+        );
+    }, [lobbyOwner.lobbyId]);
+
     return (
         <div className="flex flex-col gap-2 h-full">
-            <Card className="flex gap-3 items-start shrink-0 grow-0 justify-center">
-                <h2 className="text-4xl font-bold py-2">Join game:</h2>
-                <Card
-                    className="bg-[#2a2a2a] text-4xl font-bold cursor-pointer"
-                    onClick={() => {
-                        navigator.clipboard.writeText(joinUrl);
-                        toast("Copied to clipboard");
-                    }}
-                >
-                    {joinUrl}
+            <div className="flex gap-2">
+                <Card className="flex gap-3 shrink grow justify-center items-center">
+                    <h2 className="text-6xl font-bold py-2">Join game:</h2>
+                    <Card
+                        className="bg-[#2a2a2a] text-6xl font-bold cursor-pointer px-6 py-4"
+                        onClick={() => {
+                            navigator.clipboard.writeText(joinUrl);
+                            toast("Copied to clipboard");
+                        }}
+                    >
+                        {joinUrl}
+                    </Card>
                 </Card>
-            </Card>
+                <Card>
+                    <canvas
+                        ref={canvasRef}
+                        className="h-[256px] w-[256px]"
+                        width={256}
+                        height={256}
+                    ></canvas>
+                </Card>
+            </div>
             <Card className="flex flex-col flex-1 gap-3">
                 <h2 className="text-4xl font-bold shrink-0 grow-0">Players</h2>
                 <div className="flex flex-col gap-1.5 overflow-y-auto flex-1">
@@ -58,7 +81,9 @@ function Host() {
                                 <img
                                     src={player.data.profile.images[0].url}
                                     alt="profile"
-                                    className="w-[64px] h-[64px] rounded-l-sm"
+                                    className="w-[64px] h-[64px] rounded-l-sm object-cover"
+                                    height={64}
+                                    width={64}
                                 />
                             )}
                             <h3 className="text-2xl font-bold">
