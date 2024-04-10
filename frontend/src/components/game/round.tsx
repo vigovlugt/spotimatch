@@ -536,7 +536,7 @@ function Leaderboard() {
                 (snap.stage as RoundStage).round
             );
         },
-        PROD ? 15000 * 1000000 : 0
+        PROD ? 15000 : 0
     );
 
     return (
