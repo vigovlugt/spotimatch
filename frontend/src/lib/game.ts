@@ -72,26 +72,13 @@ export function newRoundState(
 
 function selectNewSong(players: SpotifyData[], previousSongs: string[]) {
     const previousSongsSet = new Set(previousSongs);
-    const playerSongs = players.map((player) => player.topTracks).flat();
-    const popularityBySong = new Map<string, number>();
-    for (const song of playerSongs) {
-        if (previousSongsSet.has(song.id)) {
-            continue;
-        }
-
-        if (song.preview_url === null) {
-            continue;
-        }
-
-        if (!popularityBySong.has(song.id)) {
-            popularityBySong.set(song.id, 0);
-        }
-
-        popularityBySong.set(
-            song.id,
-            popularityBySong.get(song.id)! + song.popularity
-        );
-    }
+    const player = players[Math.floor(Math.random() * players.length)];
+    const playerSongs = player.topTracks.filter(
+        (song) => !previousSongsSet.has(song.id)
+    );
+    const popularityBySong = new Map<string, number>(
+        playerSongs.map((song) => [song.id, song.popularity])
+    );
 
     return weightedRandom(popularityBySong);
 }
@@ -136,13 +123,20 @@ export function getMatches(players: SpotifyData[], trackId: string) {
 }
 
 export function assignWinnings(state: GameState, data: GameData) {
-    const matches = getMatches(
+    const validPicks = getMatches(
         data.players,
         (state.stage as RoundStage).trackId
     );
-    for (const match of matches) {
-        state.scoreByPlayer[match.profile.id] =
-            (state.scoreByPlayer[match.profile.id] ?? 0) + 1;
+
+    for (const player of data.players) {
+        const picked = (state.stage as RoundStage).pickByPlayer[
+            player.profile.id
+        ];
+        if (validPicks.map((p) => p.profile.id).includes(picked)) {
+            state.scoreByPlayer[player.profile.id] =
+                (state.scoreByPlayer[player.profile.id] ?? 0) + 1;
+        }
     }
+
     state.previousSongs.push((state.stage as RoundStage).trackId);
 }

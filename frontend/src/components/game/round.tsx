@@ -85,7 +85,6 @@ function Listen() {
         ref.current!.addEventListener("ended", () => {
             (state.stage as RoundStage).subStage = "submit";
         });
-        assignWinnings(state, data);
     }, [data, ref, state, state.stage]);
 
     useEvent("click", () => {
@@ -166,6 +165,16 @@ function Submit() {
 
     const submit = () => {
         (state.stage as RoundStage).subStage = "reveal-match";
+
+        console.log(
+            "Before assign winnings",
+            Object.entries(state.scoreByPlayer)
+        );
+        assignWinnings(state, data);
+        console.log(
+            "After assign winnings",
+            Object.entries(state.scoreByPlayer)
+        );
     };
 
     const pickByPlayer = (snap.stage as RoundStage).pickByPlayer;
@@ -187,69 +196,96 @@ function Submit() {
                         <h2 className="text-6xl font-bold">Point!</h2>
                     </div>
                 ) : (
-                    <motion.div className="flex flex-col h-full gap-4">
-                        <h2 className="text-3xl font-bold">Submit choices</h2>
-                        {data.players.map((player) => (
-                            <div
-                                key={player.profile.id}
-                                className="flex flex-col gap-1.5"
-                            >
-                                <h3 className="text-2xl font-bold">
-                                    {player.profile.display_name}
-                                    <span className="text-white/60">
-                                        {pickByPlayer[player.profile.id]
-                                            ? ": " +
-                                              data.players.find(
-                                                  (p) =>
-                                                      p.profile.id ===
-                                                      pickByPlayer[
-                                                          player.profile.id
-                                                      ]
-                                              )!.profile.display_name
-                                            : ""}
-                                    </span>
-                                </h3>
-                                <div className="flex gap-1.5">
-                                    {data.players.map((p) => (
-                                        <button
-                                            key={p.profile.id}
-                                            onClick={() => {
-                                                (
-                                                    state.stage as RoundStage
-                                                ).pickByPlayer = {
-                                                    ...(
-                                                        snap.stage as RoundStage
-                                                    ).pickByPlayer,
-                                                    [player.profile.id]:
-                                                        p.profile.id,
-                                                };
-                                            }}
-                                            className={cn(
-                                                "rounded",
-                                                (snap.stage as RoundStage)
-                                                    .pickByPlayer[
-                                                    player.profile.id
-                                                ] === p.profile.id
-                                                    ? "outline-primary outline"
-                                                    : ""
-                                            )}
-                                        >
-                                            <img
-                                                src={p.profile.images[0].url}
-                                                height={64}
-                                                width={64}
-                                                className="rounded object-cover h-[64px] w-[64px]"
-                                            ></img>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
+                    <div className="flex h-full justify-center items-center">
+                        <div className="flex flex-col items-center gap-4">
+                            <h2 className="text-3xl font-bold">
+                                Who do you think this song belongs to?
+                            </h2>
+                            <table>
+                                <tbody>
+                                    {data.players.map((player) => (
+                                        <tr key={player.profile.id}>
+                                            <td className="text-right py-2">
+                                                <h3 className="text-2xl font-bold">
+                                                    {
+                                                        player.profile
+                                                            .display_name
+                                                    }
+                                                    :
+                                                </h3>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex gap-1.5">
+                                                    {data.players.map((p) => {
+                                                        const isSelected =
+                                                            pickByPlayer[
+                                                                player.profile
+                                                                    .id
+                                                            ] === p.profile.id;
+                                                        const hasSelected =
+                                                            pickByPlayer[
+                                                                player.profile
+                                                                    .id
+                                                            ] !== undefined;
 
-                        <Button onClick={submit} className="w-[96px]">
-                            Submit
-                        </Button>
-                    </motion.div>
+                                                        return (
+                                                            <button
+                                                                key={
+                                                                    p.profile.id
+                                                                }
+                                                                onClick={() => {
+                                                                    (
+                                                                        state.stage as RoundStage
+                                                                    ).pickByPlayer =
+                                                                        {
+                                                                            ...(
+                                                                                snap.stage as RoundStage
+                                                                            )
+                                                                                .pickByPlayer,
+                                                                            [player
+                                                                                .profile
+                                                                                .id]:
+                                                                                p
+                                                                                    .profile
+                                                                                    .id,
+                                                                        };
+                                                                }}
+                                                                className={cn(
+                                                                    "rounded transition",
+                                                                    isSelected &&
+                                                                        "outline-primary outline",
+                                                                    !isSelected &&
+                                                                        hasSelected &&
+                                                                        "grayscale brightness-[.25]"
+                                                                )}
+                                                            >
+                                                                <img
+                                                                    src={
+                                                                        p
+                                                                            .profile
+                                                                            .images[0]
+                                                                            .url
+                                                                    }
+                                                                    height={64}
+                                                                    width={64}
+                                                                    className="rounded object-cover h-[64px] w-[64px]"
+                                                                ></img>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    <tr></tr>
+                                </tbody>
+                            </table>
+
+                            <Button onClick={submit} className="w-[96px]">
+                                Submit
+                            </Button>
+                        </div>
+                    </div>
                 )}
             </Card>
             <Card className="grow-0 shrink-0 flex h-full flex-col justify-center items-center text-center gap-4 px-16">
@@ -500,13 +536,13 @@ function Leaderboard() {
                 (snap.stage as RoundStage).round
             );
         },
-        PROD ? 15000 : 0
+        PROD ? 15000 * 1000000 : 0
     );
 
     return (
         <Card className="h-full flex justify-center items-center text-center">
             <motion.div
-                className="flex gap-4"
+                className="flex flex-col gap-6 items-center justify-center"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -515,32 +551,41 @@ function Leaderboard() {
                     delay: 0.5,
                 }}
             >
-                {sortedPlayers.map((player) => {
-                    const score = snap.scoreByPlayer[player.profile.id];
-                    return (
-                        <div
-                            key={player.profile.id}
-                            className="flex flex-col gap-2 justify-end h-[400px]"
-                        >
+                <h1 className="text-5xl font-bold">Leaderboard</h1>
+                <div className="flex gap-4">
+                    {sortedPlayers.map((player) => {
+                        const score = snap.scoreByPlayer[player.profile.id];
+                        return (
                             <div
-                                className="bg-primary w-[64px] rounded h-full"
-                                style={{
-                                    height:
-                                        score === 0
-                                            ? "4px"
-                                            : `${(score / maxScore) * 328}px`,
-                                }}
-                            />
+                                key={player.profile.id}
+                                className="flex flex-col gap-2 justify-end h-[400px]"
+                            >
+                                <div
+                                    className="bg-primary text-primary-foreground w-[64px] rounded h-full"
+                                    style={{
+                                        height:
+                                            score === 0
+                                                ? "4px"
+                                                : `${(score / maxScore) * 328}px`,
+                                    }}
+                                >
+                                    {score / maxScore >= 0.125 && (
+                                        <div className="font-bold text-4xl mt-1">
+                                            {score}
+                                        </div>
+                                    )}
+                                </div>
 
-                            <img
-                                src={player.profile.images[0].url}
-                                height={64}
-                                width={64}
-                                className="rounded-full object-cover h-[64px] w-[64px]"
-                            ></img>
-                        </div>
-                    );
-                })}
+                                <img
+                                    src={player.profile.images[0].url}
+                                    height={64}
+                                    width={64}
+                                    className="rounded-full object-cover h-[64px] w-[64px]"
+                                ></img>
+                            </div>
+                        );
+                    })}
+                </div>
             </motion.div>
         </Card>
     );
