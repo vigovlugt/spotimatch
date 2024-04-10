@@ -74,7 +74,7 @@ function selectNewSong(players: SpotifyData[], previousSongs: string[]) {
     const previousSongsSet = new Set(previousSongs);
     const player = players[Math.floor(Math.random() * players.length)];
     const playerSongs = player.topTracks.filter(
-        (song) => !previousSongsSet.has(song.id)
+        (song) => !previousSongsSet.has(song.id) && song.preview_url !== null
     );
     const popularityBySong = new Map<string, number>(
         playerSongs.map((song) => [song.id, song.popularity])
