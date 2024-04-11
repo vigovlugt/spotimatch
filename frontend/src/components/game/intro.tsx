@@ -1,20 +1,9 @@
 import { motion } from "framer-motion";
 import { Card } from "../ui/card";
-import { useTimeoutFn } from "react-use";
-import { useGameData, useGameState } from "@/stores/game";
-import { PROD } from "@/lib/utils";
-import { newRoundState } from "@/lib/game";
+import { useAdvanceStage } from "@/hooks";
 
 export function Intro() {
-    const state = useGameState();
-    const data = useGameData();
-
-    useTimeoutFn(
-        () => {
-            state.stage = newRoundState(data.players, state.previousSongs, 0);
-        },
-        PROD ? 5000 : 0
-    );
+    useAdvanceStage({ timeout: 5000 });
 
     return (
         <Card className="h-full flex justify-center items-center text-center">
@@ -25,7 +14,6 @@ export function Intro() {
                 exit={{ opacity: 0 }}
                 transition={{
                     duration: 3,
-                    delay: 0.5,
                 }}
             >
                 <h1 className="text-6xl font-bold">SpotiMatch</h1>

@@ -21,9 +21,9 @@ function Index() {
                 </div>
                 <div className="flex flex-col gap-4 mb-1">
                     <div className="flex gap-1.5 flex-col">
-                        <Label className="text-lg">Join lobby</Label>
+                        <Label className="text-lg">Join game</Label>
                         <Input
-                            placeholder="Lobby ID"
+                            placeholder="Game ID"
                             value={lobbyId}
                             onChange={(e) =>
                                 setLobbyId(e.target.value.toUpperCase())
@@ -44,7 +44,7 @@ function Index() {
                     </div>
 
                     <div className="flex gap-1.5 flex-col">
-                        <Label className="text-lg">Create lobby</Label>
+                        <Label className="text-lg">Create game</Label>
                         <Link
                             to="/host"
                             className={cn(

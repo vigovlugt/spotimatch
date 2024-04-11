@@ -44,7 +44,7 @@ export const Route = createFileRoute("/$id")({
             };
         } catch (e) {
             console.error("Could not connect to ws", e);
-            toast.error("Could not connect to lobby " + id);
+            toast.error("Could not connect to game " + id);
             throw redirect({
                 to: "/",
             });
@@ -78,8 +78,8 @@ function Lobby() {
                 <Card>
                     <h1 className="text-3xl font-bold">
                         {!hasSentInfo
-                            ? "Joining lobby, sending data..."
-                            : "Lobby joined!"}
+                            ? "Joining game, sending data..."
+                            : "Game joined!"}
                     </h1>
                 </Card>
             </div>
@@ -89,9 +89,9 @@ function Lobby() {
     return (
         <div className="flex justify-center items-center h-full">
             <Card className="flex flex-col gap-3 md:max-w-lg mx-auto">
-                <h1 className="text-3xl font-bold">Lobby {client.lobbyId}</h1>
+                <h1 className="text-3xl font-bold">Game {client.lobbyId}</h1>
                 <Button onClick={() => spotify.authenticate()}>
-                    Sign in with Spotify to join lobby
+                    Sign in with Spotify to join game
                 </Button>
             </Card>
         </div>

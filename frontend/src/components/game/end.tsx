@@ -17,7 +17,6 @@ export function End() {
                 exit={{ opacity: 0 }}
                 transition={{
                     duration: 3,
-                    delay: 0.5,
                 }}
             >
                 <h1 className="text-6xl font-bold">Final standings</h1>

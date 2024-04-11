@@ -9,13 +9,13 @@ export const Route = createFileRoute("/spotify-callback")({
 
         const lobbyJoinIntent = getLobbyJoinIntent();
         if (!lobbyJoinIntent) {
-            toast.error("No lobby join intent found");
+            toast.error("No game join intent found");
             throw redirect({
                 to: "/",
             });
         }
         if (Date.now() > lobbyJoinIntent.expiresAt) {
-            toast.error("Lobby join intent expired");
+            toast.error("Game join intent expired");
             throw redirect({
                 to: "/",
             });

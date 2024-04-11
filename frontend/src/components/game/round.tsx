@@ -1,19 +1,20 @@
 import { motion } from "framer-motion";
 import { Card } from "../ui/card";
-import { useTimeoutFn, useAudio, useInterval, useEvent } from "react-use";
+import { useAudio, useInterval, useEvent } from "react-use";
 import { useGameData, useGameState } from "@/stores/game";
 import { useSnapshot } from "valtio";
 import {
     RoundStage,
+    advanceStage,
     assignWinnings,
     getMatches,
     getTrack,
-    newRoundState,
 } from "@/lib/game";
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { PROD, cn } from "@/lib/utils";
 import { ArrowDown, CircleCheck, Heart } from "lucide-react";
+import { useAdvanceStage } from "@/hooks";
 
 export function Round() {
     const state = useGameState();
@@ -31,7 +32,7 @@ export function Round() {
         leaderboard: Leaderboard,
     }[snap.stage.subStage];
 
-    return <Component />;
+    return <Component key={snap.stage.subStage} />;
 }
 
 function Intro() {
@@ -41,12 +42,7 @@ function Intro() {
         throw new Error("Invalid stage type");
     }
 
-    useTimeoutFn(
-        () => {
-            (state.stage as RoundStage).subStage = "listen";
-        },
-        PROD ? 3000 : 0
-    );
+    useAdvanceStage({ timeout: 3000 });
 
     return (
         <Card className="h-full flex justify-center items-center text-center">
@@ -57,7 +53,6 @@ function Intro() {
                 exit={{ opacity: 0 }}
                 transition={{
                     duration: 0.8,
-                    delay: 0.5,
                 }}
             >
                 <h1 className="text-6xl font-bold">Round {snap.stage.round}</h1>
@@ -81,19 +76,20 @@ function Listen() {
         throw new Error("Invalid stage type");
     }
 
+    const { advance } = useAdvanceStage();
+
     useEffect(() => {
-        ref.current!.addEventListener("ended", () => {
-            (state.stage as RoundStage).subStage = "submit";
-        });
-    }, [data, ref, state, state.stage]);
+        const audioEl = ref.current!;
+        audioEl.addEventListener("ended", advance);
+
+        return () => {
+            audioEl.removeEventListener("ended", advance);
+        };
+    }, [advance, ref]);
 
     useEvent("click", () => {
         controls.play();
     });
-
-    if (!PROD) {
-        (state.stage as RoundStage).subStage = "submit";
-    }
 
     const trackIsLoaded = audioState.buffered.length > 0;
 
@@ -108,7 +104,6 @@ function Listen() {
                     exit={{ opacity: 0 }}
                     transition={{
                         duration: 0.8,
-                        delay: 0.5,
                     }}
                 >
                     <a
@@ -154,7 +149,7 @@ function Submit() {
     const snap = useSnapshot(state);
     const track = getTrack(data.players, (snap.stage as RoundStage).trackId);
 
-    const [pointingTime, setPointingTime] = useState(PROD ? 10 : -3);
+    const [pointingTime, setPointingTime] = useState(PROD ? 5 : -3);
 
     useInterval(
         () => {
@@ -164,17 +159,8 @@ function Submit() {
     );
 
     const submit = () => {
-        (state.stage as RoundStage).subStage = "reveal-match";
-
-        console.log(
-            "Before assign winnings",
-            Object.entries(state.scoreByPlayer)
-        );
         assignWinnings(state, data);
-        console.log(
-            "After assign winnings",
-            Object.entries(state.scoreByPlayer)
-        );
+        advanceStage(data, state);
     };
 
     const pickByPlayer = (snap.stage as RoundStage).pickByPlayer;
@@ -322,20 +308,12 @@ function RevealMatch() {
 
     const track = getTrack(data.players, (snap.stage as RoundStage).trackId);
 
-    const matchIds = getMatches(
+    const matches = getMatches(
         data.players,
         (snap.stage as RoundStage).trackId
     );
-    const matches = matchIds.map(
-        (id) => data.players.find((p) => p.profile.id === id.profile.id)!
-    );
 
-    useTimeoutFn(
-        () => {
-            (state.stage as RoundStage).subStage = "reveal-picks";
-        },
-        PROD ? 10000 : 0
-    );
+    useAdvanceStage({ timeout: 10000 });
 
     return (
         <Card className="h-full flex justify-center items-center text-center">
@@ -404,20 +382,7 @@ function RevealPicks() {
         (snap.stage as RoundStage).trackId
     ).map((p) => p.profile.id);
 
-    useTimeoutFn(
-        () => {
-            if ((state.stage as RoundStage).round % 5 === 0) {
-                (state.stage as RoundStage).subStage = "leaderboard";
-            } else {
-                state.stage = newRoundState(
-                    data.players,
-                    state.previousSongs,
-                    (snap.stage as RoundStage).round
-                );
-            }
-        },
-        PROD ? 5000 : 0
-    );
+    useAdvanceStage({ timeout: 5000 });
 
     return (
         <Card className="h-full flex justify-center items-center text-center">
@@ -428,7 +393,6 @@ function RevealPicks() {
                 exit={{ opacity: 0 }}
                 transition={{
                     duration: 0.8,
-                    delay: 0.5,
                 }}
             >
                 <div className="flex gap-3 justify-center">
@@ -464,8 +428,11 @@ function RevealPicks() {
                     })}
                 </div>
                 <div className="flex gap-3 justify-center">
-                    {data.players.map(() => (
-                        <div className="w-[128px] flex items-center justify-center">
+                    {data.players.map((p) => (
+                        <div
+                            className="w-[128px] flex items-center justify-center"
+                            key={p.profile.id}
+                        >
                             <ArrowDown className="w-10 h-10 text-white" />
                         </div>
                     ))}
@@ -528,16 +495,7 @@ function Leaderboard() {
             snap.scoreByPlayer[b.profile.id] - snap.scoreByPlayer[a.profile.id]
     );
 
-    useTimeoutFn(
-        () => {
-            state.stage = newRoundState(
-                data.players,
-                state.previousSongs,
-                (snap.stage as RoundStage).round
-            );
-        },
-        PROD ? 15000 * 1000000 : 0
-    );
+    useAdvanceStage({ timeout: 15000 });
 
     return (
         <Card className="h-full flex justify-center items-center text-center">
@@ -548,7 +506,6 @@ function Leaderboard() {
                 exit={{ opacity: 0 }}
                 transition={{
                     duration: 0.8,
-                    delay: 0.5,
                 }}
             >
                 <h1 className="text-5xl font-bold">Leaderboard</h1>

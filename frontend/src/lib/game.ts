@@ -54,7 +54,43 @@ export function newGameState(players: SpotifyData[]): GameState {
     };
 }
 
-export function newRoundState(
+export function advanceStage(data: GameData, state: GameState) {
+    switch (state.stage.type) {
+        case "intro":
+            state.stage = newRoundState(data.players, state.previousSongs, 0);
+            break;
+        case "round":
+            switch (state.stage.subStage) {
+                case "intro":
+                    state.stage.subStage = "listen";
+                    break;
+                case "listen":
+                    state.stage.subStage = "submit";
+                    break;
+                case "submit":
+                    state.stage.subStage = "reveal-match";
+                    break;
+                case "reveal-match":
+                    state.stage.subStage = "reveal-picks";
+                    break;
+                case "reveal-picks":
+                    state.stage.subStage = "leaderboard";
+                    break;
+                case "leaderboard":
+                    state.stage = newRoundState(
+                        data.players,
+                        state.previousSongs,
+                        (state.stage as RoundStage).round
+                    );
+                    break;
+            }
+            break;
+        case "end":
+            throw new Error("Game is over");
+    }
+}
+
+function newRoundState(
     players: SpotifyData[],
     previousSongs: string[],
     currentRound: number
