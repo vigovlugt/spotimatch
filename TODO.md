@@ -1,4 +1,3 @@
--   New way to select winners
 -   Support no profile picture
 -   Add color to lobby players
 -   Algorithm to reduce duplicate artists

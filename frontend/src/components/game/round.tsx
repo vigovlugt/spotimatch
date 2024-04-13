@@ -15,6 +15,7 @@ import { Button } from "../ui/button";
 import { PROD, cn } from "@/lib/utils";
 import { Heart } from "lucide-react";
 import { useAdvanceStage } from "@/hooks";
+import { ProfilePicture } from "../ProfilePicture";
 
 export function Round() {
     const state = useGameState();
@@ -112,7 +113,8 @@ function Listen() {
                         className="flex flex-col items-center gap-4"
                     >
                         <img
-                            src={track.album.images[0].url}
+                            src={track.album.images.at(0)?.url}
+                            alt={track.name}
                             width={640}
                             height={640}
                             className="rounded-lg h-[640px] w-[640px] object-cover"
@@ -185,7 +187,8 @@ function Select() {
                     className="flex flex-col items-center gap-4"
                 >
                     <img
-                        src={track.album.images[0].url}
+                        src={track.album.images.at(0)?.url}
+                        alt={track.name}
                         width={256}
                         height={256}
                         className="rounded-lg object-cover h-[256px] w-[256px]"
@@ -237,12 +240,11 @@ function RevealMatch() {
                             className="flex flex-col gap-1.5"
                             key={match.profile.id}
                         >
-                            <img
-                                src={match.profile.images.at(-1)!.url}
-                                height={256}
-                                width={256}
-                                className="rounded object-cover h-[256px] w-[256px]"
-                            ></img>
+                            <ProfilePicture
+                                player={match}
+                                size={256}
+                                className="rounded"
+                            ></ProfilePicture>
                             <h3 className="text-2xl font-bold">
                                 {match.profile.display_name}
                             </h3>
@@ -256,7 +258,8 @@ function RevealMatch() {
                     className="flex flex-col items-center gap-4"
                 >
                     <img
-                        src={track.album.images[0].url}
+                        src={track.album.images.at(0)?.url}
+                        alt={track.name}
                         width={256}
                         height={256}
                         className="rounded-lg object-cover h-[256px] w-[256px]"
@@ -339,16 +342,11 @@ function Submit() {
                                                 ) && "outline-4"
                                             )}
                                         >
-                                            <img
-                                                src={
-                                                    player.profile.images.at(
-                                                        -1
-                                                    )!.url
-                                                }
-                                                height={96}
-                                                width={96}
-                                                className="rounded object-cover h-[96px] w-[96px]"
-                                            ></img>
+                                            <ProfilePicture
+                                                player={player}
+                                                size={96}
+                                                className="rounded"
+                                            />
                                         </button>
                                     </motion.div>
                                 );
@@ -368,7 +366,7 @@ function Submit() {
                     className="flex flex-col items-center gap-4"
                 >
                     <img
-                        src={track.album.images[0].url}
+                        src={track.album.images.at(0)?.url}
                         width={256}
                         height={256}
                         className="rounded-lg object-cover h-[256px] w-[256px]"
@@ -437,12 +435,11 @@ function Leaderboard() {
                                     )}
                                 </div>
 
-                                <img
-                                    src={player.profile.images[0].url}
-                                    height={64}
-                                    width={64}
-                                    className="rounded-full object-cover h-[64px] w-[64px]"
-                                ></img>
+                                <ProfilePicture
+                                    size={64}
+                                    player={player}
+                                    className="rounded-full"
+                                />
                             </div>
                         );
                     })}

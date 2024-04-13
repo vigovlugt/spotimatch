@@ -7,6 +7,7 @@ import { LoaderCircle, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GameData, setGameData } from "@/lib/game";
 import { toCanvas } from "qrcode";
+import { ProfilePicture } from "@/components/ProfilePicture";
 
 export const Route = createFileRoute("/host")({
     loader: async () => {
@@ -78,12 +79,10 @@ function Host() {
                                     <LoaderCircle className="animate-spin w-7 h-7" />
                                 </div>
                             ) : (
-                                <img
-                                    src={player.data.profile.images[0].url}
-                                    alt="profile"
-                                    className="w-[64px] h-[64px] rounded-l-sm object-cover"
-                                    height={64}
-                                    width={64}
+                                <ProfilePicture
+                                    player={player.data}
+                                    size={64}
+                                    className="rounded-l-sm"
                                 />
                             )}
                             <h3 className="text-2xl font-bold">
