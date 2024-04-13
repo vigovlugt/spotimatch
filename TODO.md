@@ -1,0 +1,9 @@
+-   New way to select winners
+-   Support no profile picture
+-   Add color to lobby players
+-   Algorithm to reduce duplicate artists
+-   Pick artists on shared accounts
+-   Long/short term top music
+-   Finish line
+-   Lobby options
+-   ? button to know space skipping

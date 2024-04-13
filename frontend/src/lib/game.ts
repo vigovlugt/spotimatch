@@ -24,11 +24,10 @@ export type RoundStage = {
     subStage:
         | "intro"
         | "listen"
-        | "submit"
+        | "select"
         | "reveal-match"
-        | "reveal-picks"
+        | "submit"
         | "leaderboard";
-    pickByPlayer: Record<string, string>;
     trackId: string;
 };
 
@@ -65,15 +64,15 @@ export function advanceStage(data: GameData, state: GameState) {
                     state.stage.subStage = "listen";
                     break;
                 case "listen":
-                    state.stage.subStage = "submit";
+                    state.stage.subStage = "select";
                     break;
-                case "submit":
+                case "select":
                     state.stage.subStage = "reveal-match";
                     break;
                 case "reveal-match":
-                    state.stage.subStage = "reveal-picks";
+                    state.stage.subStage = "submit";
                     break;
-                case "reveal-picks":
+                case "submit":
                     state.stage.subStage = "leaderboard";
                     break;
                 case "leaderboard":
@@ -95,13 +94,10 @@ function newRoundState(
     previousSongs: string[],
     currentRound: number
 ): RoundStage {
-    const pickByPlayer: Record<string, string> = {};
-
     return {
         type: "round",
         round: currentRound + 1,
         subStage: "intro",
-        pickByPlayer,
         trackId: selectNewSong(players, previousSongs),
     };
 }
@@ -158,17 +154,13 @@ export function getMatches(players: SpotifyData[], trackId: string) {
     return matches;
 }
 
-export function assignWinnings(state: GameState, data: GameData) {
-    const validPicks = getMatches(
-        data.players,
-        (state.stage as RoundStage).trackId
-    );
-
+export function assignWinnings(
+    state: GameState,
+    data: GameData,
+    winners: string[]
+) {
     for (const player of data.players) {
-        const picked = (state.stage as RoundStage).pickByPlayer[
-            player.profile.id
-        ];
-        if (validPicks.map((p) => p.profile.id).includes(picked)) {
+        if (winners.includes(player.profile.id)) {
             state.scoreByPlayer[player.profile.id] =
                 (state.scoreByPlayer[player.profile.id] ?? 0) + 1;
         }
