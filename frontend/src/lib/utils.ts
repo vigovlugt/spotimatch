@@ -34,7 +34,7 @@ export function colorByPlayer(player: SpotifyData) {
         prand.unsafeUniformIntDistribution(
             0,
             COLORS.length - 1,
-            prand.xoroshiro128plus(player.profile.id.charCodeAt(0))
+            prand.xoroshiro128plus(player.profile.id.charCodeAt(0) + Date.now())
         )
     ];
 }

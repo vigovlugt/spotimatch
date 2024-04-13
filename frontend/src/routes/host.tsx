@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { GameData, setGameData } from "@/lib/game";
 import { toCanvas } from "qrcode";
 import { ProfilePicture } from "@/components/ProfilePicture";
+import { colorByPlayer } from "@/lib/utils";
 
 export const Route = createFileRoute("/host")({
     loader: async () => {
@@ -72,6 +73,11 @@ function Host() {
                     {players.map((player) => (
                         <Card
                             className="bg-[#2a2a2a] w-full flex gap-4 items-center p-0"
+                            style={{
+                                backgroundImage: player.data
+                                    ? `linear-gradient(180deg, ${colorByPlayer(player.data)}22, rgba(0,0,0,0))`
+                                    : undefined,
+                            }}
                             key={player.id}
                         >
                             {!player.data ? (

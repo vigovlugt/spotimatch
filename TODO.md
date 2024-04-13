@@ -1,4 +1,3 @@
--   Support no profile picture
 -   Add color to lobby players
 -   Algorithm to reduce duplicate artists
 -   Pick artists on shared accounts
