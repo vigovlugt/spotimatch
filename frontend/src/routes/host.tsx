@@ -102,10 +102,17 @@ function Host() {
                 <div className="flex justify-center items-center shrink-0 grow-0">
                     <Button
                         onClick={() => {
+                            const loadedPlayers = players
+                                .map((p) => p.data)
+                                .filter(Boolean);
+                            if (loadedPlayers.length === 0) {
+                                toast("Wait for players to join");
+                                return;
+                            }
+
                             const gameData: GameData = {
-                                players: players
-                                    .map((p) => p.data)
-                                    .filter(Boolean),
+                                players: loadedPlayers,
+                                targetScore: 10,
                             };
                             setGameData(gameData);
                             lobbyOwner.close();

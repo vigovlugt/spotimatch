@@ -2,6 +2,7 @@ import { SpotifyData } from "./lobby";
 
 export type GameData = {
     players: SpotifyData[];
+    targetScore: number;
 };
 
 export function setGameData(data: GameData) {
@@ -18,18 +19,21 @@ export type IntroStage = {
     type: "intro";
 };
 
-export type RoundStage = {
-    type: "round";
-    round: number;
-    subStage:
-        | "intro"
-        | "listen"
-        | "select"
-        | "reveal-match"
-        | "submit"
-        | "leaderboard";
-    trackId: string;
-};
+export type RoundStageSubStage =
+    | "intro"
+    | "listen"
+    | "select"
+    | "reveal-match"
+    | "submit"
+    | "leaderboard";
+
+export type RoundStage<Stage extends RoundStageSubStage = RoundStageSubStage> =
+    {
+        type: "round";
+        round: number;
+        subStage: Stage;
+        trackId: string;
+    };
 
 export type EndStage = {
     type: "end";
@@ -37,15 +41,19 @@ export type EndStage = {
 
 export type GameStage = IntroStage | RoundStage | EndStage;
 
-export type GameState = {
+export type GameState<Stage extends GameStage = GameStage> = {
     scoreByPlayer: Record<string, number>;
+    previousScoreByPlayer: Record<string, number>;
     previousSongs: string[];
-    stage: GameStage;
+    stage: Stage;
 };
 
 export function newGameState(players: SpotifyData[]): GameState {
     return {
         scoreByPlayer: Object.fromEntries(
+            players.map((player) => [player.profile.id, 0])
+        ),
+        previousScoreByPlayer: Object.fromEntries(
             players.map((player) => [player.profile.id, 0])
         ),
         previousSongs: [],
@@ -75,17 +83,24 @@ export function advanceStage(data: GameData, state: GameState) {
                 case "submit":
                     state.stage.subStage = "leaderboard";
                     break;
-                case "leaderboard":
+                case "leaderboard": {
+                    const maxScore = Math.max(
+                        ...Object.values(state.scoreByPlayer)
+                    );
+                    if (maxScore >= data.targetScore) {
+                        state.stage = { type: "end" };
+                        break;
+                    }
+
                     state.stage = newRoundState(
                         data.players,
                         state.previousSongs,
                         (state.stage as RoundStage).round
                     );
                     break;
+                }
             }
             break;
-        case "end":
-            throw new Error("Game is over");
     }
 }
 
@@ -155,10 +170,12 @@ export function getMatches(players: SpotifyData[], trackId: string) {
 }
 
 export function assignWinnings(
-    state: GameState,
+    state: GameState<RoundStage>,
     data: GameData,
     winners: string[]
 ) {
+    state.previousScoreByPlayer = { ...state.scoreByPlayer };
+
     for (const player of data.players) {
         if (winners.includes(player.profile.id)) {
             state.scoreByPlayer[player.profile.id] =
@@ -166,5 +183,5 @@ export function assignWinnings(
         }
     }
 
-    state.previousSongs.push((state.stage as RoundStage).trackId);
+    state.previousSongs.push(state.stage.trackId);
 }

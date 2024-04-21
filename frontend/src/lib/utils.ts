@@ -29,12 +29,21 @@ const COLORS = [
     "#ef4444",
 ];
 
+export function hash(s: string) {
+    let hash = 0;
+    for (let i = 0; i < s.length; i++) {
+        hash = (hash << 5) - hash + s.charCodeAt(i);
+        hash |= 0;
+    }
+    return hash;
+}
+
 export function colorByPlayer(player: SpotifyData) {
     return COLORS[
         prand.unsafeUniformIntDistribution(
             0,
             COLORS.length - 1,
-            prand.xoroshiro128plus(player.profile.id.charCodeAt(0) + Date.now())
+            prand.xoroshiro128plus(hash(player.profile.id))
         )
     ];
 }

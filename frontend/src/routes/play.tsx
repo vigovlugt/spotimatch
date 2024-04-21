@@ -1,3 +1,4 @@
+import { End } from "@/components/game/end";
 import { Intro } from "@/components/game/intro";
 import { Round } from "@/components/game/round";
 import { getGameData, newGameState } from "@/lib/game";
@@ -42,7 +43,7 @@ function PlayInner() {
 
     const Component = {
         intro: Intro,
-        end: Intro,
+        end: End,
         round: Round,
     }[snap.stage.type];
 

@@ -1,7 +1,6 @@
 import { spotify } from "./spotify";
 import { UserProfile, Track } from "@spotify/web-api-ts-sdk";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SpotifyData = {
     profile: UserProfile;
     topTracks: Track[];

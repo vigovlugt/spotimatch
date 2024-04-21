@@ -64,8 +64,13 @@ function Lobby() {
             }
 
             if (isAuthenticated) {
-                await client.sendInfo();
-                setHasSentInfo(true);
+                try {
+                    await client.sendInfo();
+                    setHasSentInfo(true);
+                } catch (e) {
+                    console.error("Could not send info", e);
+                    toast.error("Error joining game");
+                }
             }
         }
         sendInfo();
