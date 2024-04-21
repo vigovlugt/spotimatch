@@ -1,3 +1,4 @@
+import { Timeout } from "node_modules/@tanstack/react-router/dist/esm/utils";
 import { spotify } from "./spotify";
 import { UserProfile, Track } from "@spotify/web-api-ts-sdk";
 
@@ -21,10 +22,14 @@ export type ClientboundMessage =
           lobbyId: string;
       };
 
-export type ServerboundMessage = {
-    type: "registerPlayerInfo";
-    data: SpotifyData;
-};
+export type ServerboundMessage =
+    | {
+          type: "registerPlayerInfo";
+          data: SpotifyData;
+      }
+    | {
+          type: "keepAlive";
+      };
 
 export async function createWsConnection(
     lobbyId: string | undefined,
@@ -53,6 +58,8 @@ export class LobbyOwner {
 
     emitter = new EventTarget();
 
+    keepAliveInterval: Timeout;
+
     constructor(
         private ws: WebSocket,
         public lobbyId: string
@@ -60,6 +67,9 @@ export class LobbyOwner {
         this.onMessage = this.onMessage.bind(this);
         this.subscribePlayers = this.subscribePlayers.bind(this);
         ws.onmessage = this.onMessage;
+        this.keepAliveInterval = setInterval(() => {
+            this.send({ type: "keepAlive" });
+        }, 1000 * 10);
     }
 
     send(msg: ServerboundMessage) {
@@ -108,6 +118,7 @@ export class LobbyOwner {
 
     close() {
         this.ws.close();
+        clearInterval(this.keepAliveInterval);
     }
 }
 
