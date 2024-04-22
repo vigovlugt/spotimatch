@@ -117,17 +117,120 @@ function newRoundState(
     };
 }
 
-function selectNewSong(players: SpotifyData[], previousSongs: string[]) {
-    const previousSongsSet = new Set(previousSongs);
-    const player = players[Math.floor(Math.random() * players.length)];
-    const playerSongs = player.topTracks.filter(
-        (song) => !previousSongsSet.has(song.id) && song.preview_url !== null
-    );
-    const popularityBySong = new Map<string, number>(
-        playerSongs.map((song) => [song.id, song.popularity])
+function getPlayersByArtist(
+    players: SpotifyData[]
+): Map<string, Set<SpotifyData>> {
+    const playersByArtist = new Map<string, Set<SpotifyData>>();
+    for (const player of players) {
+        for (const song of player.topTracks) {
+            for (const artist of song.artists) {
+                if (!playersByArtist.has(artist.id)) {
+                    playersByArtist.set(artist.id, new Set());
+                }
+                const existing = playersByArtist.get(artist.id)!;
+                existing.add(player);
+            }
+        }
+    }
+
+    return playersByArtist;
+}
+
+function getPlayersByAlbum(
+    players: SpotifyData[]
+): Map<string, Set<SpotifyData>> {
+    const playersByAlbum = new Map<string, Set<SpotifyData>>();
+    for (const player of players) {
+        for (const song of player.topTracks) {
+            if (!playersByAlbum.has(song.album.id)) {
+                playersByAlbum.set(song.album.id, new Set());
+            }
+            const existing = playersByAlbum.get(song.album.id)!;
+            existing.add(player);
+        }
+    }
+
+    return playersByAlbum;
+}
+
+function selectNewSong(players: SpotifyData[], previousSongIds: string[]) {
+    const previousSongsSet = new Set(previousSongIds);
+    const playersByArtist = getPlayersByArtist(players);
+    const playersByAlbum = getPlayersByAlbum(players);
+    const songById = new Map<string, SpotifyData["topTracks"][0]>(
+        players.flatMap((player) =>
+            player.topTracks.map((track) => [track.id, track])
+        )
     );
 
-    return weightedRandom(popularityBySong);
+    const previousSongArtists = new Set(
+        previousSongIds
+            .map((id) => songById.get(id)!.artists.at(0)?.id)
+            .filter(Boolean)
+    );
+    const previousSongAlbums = new Set(
+        previousSongIds.map((id) => songById.get(id)!.album.id)
+    );
+
+    const player = players[Math.floor(Math.random() * players.length)];
+    const possibleSongs = player.topTracks.filter(
+        (song) => !previousSongsSet.has(song.id) && song.preview_url !== null
+    );
+    if (possibleSongs.length === 0) {
+        return selectNewSong(players, previousSongIds);
+    }
+
+    const weightBySong = new Map<string, number>(
+        possibleSongs.map((song) => [
+            song.id,
+            calculateSongWeight(
+                previousSongsSet,
+                playersByArtist,
+                playersByAlbum,
+                previousSongArtists,
+                previousSongAlbums,
+                song
+            ),
+        ])
+    );
+
+    return weightedRandom(weightBySong);
+}
+
+function calculateSongWeight(
+    previousSongsSet: Set<string>,
+    playersByArtist: Map<string, Set<SpotifyData>>,
+    playersByAlbum: Map<string, Set<SpotifyData>>,
+    previousSongArtists: Set<string>,
+    previousSongAlbums: Set<string>,
+    song: SpotifyData["topTracks"][0]
+) {
+    let weight = song.popularity;
+    if (previousSongsSet.has(song.id)) {
+        return 0;
+    }
+
+    const artist = song.artists.at(0);
+    if (artist === undefined) {
+        return weight;
+    }
+
+    const albumPlayers = playersByAlbum.get(song.album.id)!;
+    const albumIsPrevious = previousSongAlbums.has(song.album.id);
+    const artistPlayers = playersByArtist.get(artist.id)!;
+    const artistIsPrevious = previousSongArtists.has(artist.id);
+
+    // If the album has been played before, and only one player listens to the album, it is too easy to know who played it
+    if (albumPlayers.size === 1 && albumIsPrevious) {
+        weight *= 0.25;
+    }
+
+    // If the artist has been played before, and only one player listens to the artist, it is relatively easy to know who played it
+    if (artistPlayers.size === 1 && artistIsPrevious) {
+        weight *= 0.5;
+    }
+
+    return weight;
 }
 
 function weightedRandom(map: Map<string, number>) {

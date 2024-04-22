@@ -427,7 +427,8 @@ function Leaderboard() {
         (a, b) => scoreByPlayer[b.profile.id] - scoreByPlayer[a.profile.id]
     );
 
-    const hasWon = Math.max(...Object.values(scoreByPlayer)) >= targetScore;
+    const hasWon =
+        Math.max(...Object.values(snap.scoreByPlayer)) >= targetScore;
 
     useTimeoutFn(() => {
         setScoreByPlayer(snap.scoreByPlayer);
@@ -453,7 +454,13 @@ function Leaderboard() {
                     </h3>
                 </div>
                 <div className="flex">
-                    <motion.div className="flex flex-col gap-4 pt-6" layout>
+                    <motion.div
+                        className="flex flex-col gap-4 pt-6"
+                        layout
+                        transition={{
+                            duration: 0.8,
+                        }}
+                    >
                         {sortedPlayers.map((player) => {
                             const score = scoreByPlayer[player.profile.id];
                             const width =

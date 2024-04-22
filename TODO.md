@@ -1,4 +1,3 @@
--   Algorithm to reduce duplicate artists
 -   Pick artists on shared accounts
 -   Long/short term top music
 -   Lobby options

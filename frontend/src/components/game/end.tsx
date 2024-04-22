@@ -151,14 +151,23 @@ export function End() {
                         </tbody>
                     </table>
                 )}
-                <div>
-                    <Link
-                        to="/host"
+                <div className="w-[576px] flex justify-between">
+                    <button
                         className={buttonVariants({
                             variant: "default",
                         })}
+                        onClick={() => location.reload()}
                     >
-                        New Game
+                        Play again
+                    </button>
+
+                    <Link
+                        to="/"
+                        className={buttonVariants({
+                            variant: "secondary",
+                        })}
+                    >
+                        Back to menu
                     </Link>
                 </div>
             </motion.div>
