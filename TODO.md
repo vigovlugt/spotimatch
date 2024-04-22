@@ -1,4 +1,3 @@
--   Pick artists on shared accounts
--   Long/short term top music
 -   Lobby options
+-   Long/short term top music
 -   ? button to know space skipping

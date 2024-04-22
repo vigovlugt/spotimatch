@@ -160,15 +160,7 @@ export class LobbyClient {
         public playerId: string
     ) {}
 
-    async sendInfo() {
-        const [profileData, topTracks] = await Promise.all([
-            spotify.currentUser.profile(),
-            spotify.currentUser.topItems("tracks", "short_term", 50, 0),
-        ]);
-        const data: SpotifyData = {
-            profile: profileData,
-            topTracks: topTracks.items,
-        };
+    sendInfo(data: SpotifyData) {
         this.ws.send(JSON.stringify({ type: "registerPlayerInfo", data }));
     }
 }
