@@ -17,7 +17,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { send } from "process";
 
 export const Route = createFileRoute("/$id")({
     loader: async ({ params: { id } }) => {

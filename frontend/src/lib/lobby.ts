@@ -1,5 +1,4 @@
 import { Timeout } from "node_modules/@tanstack/react-router/dist/esm/utils";
-import { spotify } from "./spotify";
 import { UserProfile, Track } from "@spotify/web-api-ts-sdk";
 
 export type SpotifyData = {
