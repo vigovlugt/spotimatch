@@ -150,7 +150,8 @@ function Lobby() {
                     <DialogContent className="sm:max-w-[425px]" hideClose>
                         <DialogHeader>
                             <DialogTitle>
-                                Do you share your Spotify account?
+                                Are you sharing your Spotify account with
+                                others?
                             </DialogTitle>
                         </DialogHeader>
 
