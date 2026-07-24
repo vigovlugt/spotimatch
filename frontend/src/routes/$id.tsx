@@ -8,8 +8,13 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { spotify } from "@/lib/spotify";
-import { useEffect, useState } from "react";
+import {
+    getSpotifyClient,
+    hasSecondarySpotifyApp,
+    isSpotifyForbidden,
+    type SpotifyAppIndex,
+} from "@/lib/spotify";
+import { useEffect, useRef, useState } from "react";
 import {
     Dialog,
     DialogContent,
@@ -24,6 +29,7 @@ export const Route = createFileRoute("/$id")({
         id = id.toUpperCase();
 
         let existingPlayerId = undefined;
+        let spotifyAppIndex: SpotifyAppIndex = 0;
 
         const lobbyJoinIntent = getLobbyJoinIntent();
         if (
@@ -32,23 +38,29 @@ export const Route = createFileRoute("/$id")({
             Date.now() < lobbyJoinIntent.expiresAt
         ) {
             existingPlayerId = lobbyJoinIntent.playerId;
+            spotifyAppIndex =
+                lobbyJoinIntent.spotifyAppIndex === 1 ? 1 : 0;
         }
 
         try {
             const client = await createLobbyClient(id, existingPlayerId);
-            const accessToken = await spotify.getAccessToken();
 
             setLobbyJoinIntent({
                 lobbyId: id,
                 playerId: client.playerId,
                 expiresAt: Date.now() + 1000 * 60 * 5,
+                spotifyAppIndex,
             });
+
+            const spotify = getSpotifyClient(spotifyAppIndex);
+            const accessToken = await spotify.getAccessToken();
 
             console.log("Joined lobby", id);
 
             return {
                 client,
                 isAuthenticated: accessToken !== null,
+                spotifyAppIndex,
             };
         } catch (e) {
             console.error("Could not connect to ws", e);
@@ -62,11 +74,12 @@ export const Route = createFileRoute("/$id")({
 });
 
 function Lobby() {
-    const { client, isAuthenticated } = Route.useLoaderData();
+    const { client, isAuthenticated, spotifyAppIndex } = Route.useLoaderData();
 
     const [spotifyData, setSpotifyData] = useState<SpotifyData | undefined>(
         undefined
     );
+    const fallbackStarted = useRef(false);
 
     useEffect(() => {
         async function getData() {
@@ -74,21 +87,42 @@ function Lobby() {
                 return;
             }
             try {
+                const spotify = getSpotifyClient(spotifyAppIndex);
                 const [profileData, topTracks] = await Promise.all([
                     spotify.currentUser.profile(),
-                    spotify.currentUser.topItems("tracks", "short_term", 50, 0),
+                    spotify.currentUser.topItems("tracks", "long_term", 50, 0),
                 ]);
                 setSpotifyData({
                     profile: profileData,
                     topTracks: topTracks.items,
                 });
             } catch (e) {
+                if (
+                    spotifyAppIndex === 0 &&
+                    hasSecondarySpotifyApp() &&
+                    isSpotifyForbidden(e) &&
+                    !fallbackStarted.current
+                ) {
+                    fallbackStarted.current = true;
+                    const lobbyJoinIntent = getLobbyJoinIntent();
+                    if (lobbyJoinIntent) {
+                        setLobbyJoinIntent({
+                            ...lobbyJoinIntent,
+                            spotifyAppIndex: 1,
+                        });
+                    }
+
+                    toast.info("Trying the alternate Spotify app");
+                    await getSpotifyClient(1).authenticate();
+                    return;
+                }
+
                 console.error("Could not get spotify data", e);
                 toast.error("Error getting spotify data");
             }
         }
         getData();
-    }, [isAuthenticated]);
+    }, [isAuthenticated, spotifyAppIndex]);
 
     const [hasSentInfo, setHasSentInfo] = useState(false);
     async function sendInfo(data: SpotifyData) {
@@ -253,7 +287,11 @@ function Lobby() {
         <div className="flex justify-center items-center h-full">
             <Card className="flex flex-col gap-3 md:max-w-lg mx-auto">
                 <h1 className="text-3xl font-bold">Game {client.lobbyId}</h1>
-                <Button onClick={() => spotify.authenticate()}>
+                <Button
+                    onClick={() =>
+                        getSpotifyClient(spotifyAppIndex).authenticate()
+                    }
+                >
                     Sign in with Spotify to join game
                 </Button>
             </Card>

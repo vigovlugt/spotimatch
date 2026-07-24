@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"sync"
+	"time"
 
 	"log"
 	"os"
@@ -281,8 +282,11 @@ func run() error {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", handleWs(appContext))
+	mux.Handle("/preview/", NewPreviewResolver(&http.Client{
+		Timeout: 10 * time.Second,
+	}))
 
-	log.Println("Listening on http://localhost:" + port)
+	log.Println("Listening on http://0.0.0.0:" + port)
 	err := http.ListenAndServe("0.0.0.0:"+port, mux)
 	if err != nil {
 		return err
@@ -304,7 +308,7 @@ func handleWs(ctx *AppContext) http.HandlerFunc {
 		}
 
 		c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-			OriginPatterns: []string{"localhost:5173", "127.0.0.1:5173", "spotimatch.pages.dev"},
+			OriginPatterns: []string{"localhost:5173", "127.0.0.1:5173", "192.168.1.88:5173", "spotimatch.pages.dev", "spotimatch.vigovlugt.com"},
 		})
 		if err != nil {
 			log.Println(err)

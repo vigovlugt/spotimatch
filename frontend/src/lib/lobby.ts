@@ -1,5 +1,5 @@
-import { Timeout } from "node_modules/@tanstack/react-router/dist/esm/utils";
 import { UserProfile, Track } from "@spotify/web-api-ts-sdk";
+import type { SpotifyAppIndex } from "@/lib/spotify";
 
 export type SpotifyData = {
     profile: UserProfile;
@@ -34,7 +34,10 @@ export async function createWsConnection(
     lobbyId: string | undefined,
     playerId?: string
 ) {
-    const url = new URL(`${import.meta.env.VITE_LOBBY_API_URL}/ws`);
+    const lobbyApiUrl =
+        import.meta.env.VITE_LOBBY_API_URL ||
+        location.origin.replace(/^http/, "ws");
+    const url = new URL(`${lobbyApiUrl}/ws`);
     if (lobbyId) {
         url.searchParams.set("lobby", lobbyId);
     }
@@ -57,7 +60,7 @@ export class LobbyOwner {
 
     emitter = new EventTarget();
 
-    keepAliveInterval: Timeout;
+    keepAliveInterval: ReturnType<typeof setInterval>;
 
     constructor(
         private ws: WebSocket,
@@ -168,6 +171,7 @@ export type LobbyJoinIntent = {
     lobbyId: string;
     playerId: string;
     expiresAt: number;
+    spotifyAppIndex: SpotifyAppIndex;
 };
 
 export function getLobbyJoinIntent(): LobbyJoinIntent | undefined {

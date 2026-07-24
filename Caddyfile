@@ -1,0 +1,21 @@
+spotimatch.vigovlugt.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+
+	encode zstd gzip
+
+	handle /ws* {
+		reverse_proxy {$LOBBY_SERVER:127.0.0.1:3000}
+	}
+
+	handle /preview/* {
+		reverse_proxy {$LOBBY_SERVER:127.0.0.1:3000}
+	}
+
+	handle {
+		root * frontend/dist
+		try_files {path} /index.html
+		file_server
+	}
+}

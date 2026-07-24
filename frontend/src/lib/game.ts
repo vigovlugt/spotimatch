@@ -172,14 +172,25 @@ function selectNewSong(players: SpotifyData[], previousSongIds: string[]) {
         previousSongIds.map((id) => songById.get(id)!.album.id)
     );
 
-    const player = players[Math.floor(Math.random() * players.length)];
-    const possibleSongs = player.topTracks.filter(
-        (song) => !previousSongsSet.has(song.id) && song.preview_url !== null
-    );
-    if (possibleSongs.length === 0) {
-        return selectNewSong(players, previousSongIds);
+    const eligiblePlayers = players
+        .map((player) => ({
+            player,
+            songs: [
+                ...new Map(
+                    player.topTracks
+                        .filter((song) => !previousSongsSet.has(song.id))
+                        .map((song) => [song.id, song])
+                ).values(),
+            ],
+        }))
+        .filter(({ songs }) => songs.length > 0);
+
+    if (eligiblePlayers.length === 0) {
+        throw new Error("No unused Spotify tracks remain");
     }
 
+    const { songs: possibleSongs } =
+        eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
     const weightBySong = new Map<string, number>(
         possibleSongs.map((song) => [
             song.id,
@@ -235,6 +246,11 @@ function calculateSongWeight(
 
 function weightedRandom(map: Map<string, number>) {
     const total = Array.from(map.values()).reduce((a, b) => a + b, 0);
+    if (total <= 0) {
+        const keys = [...map.keys()];
+        return keys[Math.floor(Math.random() * keys.length)];
+    }
+
     const random = Math.random() * total;
     let sum = 0;
     for (const [key, value] of map.entries()) {

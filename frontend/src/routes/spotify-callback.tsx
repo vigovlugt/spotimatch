@@ -1,12 +1,10 @@
 import { getLobbyJoinIntent } from "@/lib/lobby";
-import { spotify } from "@/lib/spotify";
+import { getSpotifyClient } from "@/lib/spotify";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/spotify-callback")({
     loader: async () => {
-        await spotify.authenticate();
-
         const lobbyJoinIntent = getLobbyJoinIntent();
         if (!lobbyJoinIntent) {
             toast.error("No game join intent found");
@@ -20,6 +18,10 @@ export const Route = createFileRoute("/spotify-callback")({
                 to: "/",
             });
         }
+
+        const spotifyAppIndex =
+            lobbyJoinIntent.spotifyAppIndex === 1 ? 1 : 0;
+        await getSpotifyClient(spotifyAppIndex).authenticate();
 
         console.log(lobbyJoinIntent.lobbyId);
 

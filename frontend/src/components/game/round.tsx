@@ -69,10 +69,11 @@ function Listen() {
     const snap = useSnapshot(state);
     const track = getTrack(data.players, (snap.stage as RoundStage).trackId);
     const [audio, audioState, controls, ref] = useAudio({
-        src: track.preview_url!,
+        src: `/preview/${encodeURIComponent(track.id)}`,
         autoPlay: true,
         loop: false,
     });
+    const [audioFailed, setAudioFailed] = useState(false);
 
     if (snap.stage.type !== "round" || snap.stage.subStage !== "listen") {
         throw new Error("Invalid stage type");
@@ -83,9 +84,12 @@ function Listen() {
     useEffect(() => {
         const audioEl = ref.current!;
         audioEl.addEventListener("ended", advance);
+        const handleError = () => setAudioFailed(true);
+        audioEl.addEventListener("error", handleError);
 
         return () => {
             audioEl.removeEventListener("ended", advance);
+            audioEl.removeEventListener("error", handleError);
         };
     }, [advance, ref]);
 
@@ -140,6 +144,12 @@ function Listen() {
                             }}
                         ></motion.div>
                     </div>
+                    {audioFailed && (
+                        <div className="flex flex-col gap-2">
+                            <p>Preview unavailable for this track.</p>
+                            <Button onClick={advance}>Skip preview</Button>
+                        </div>
+                    )}
                 </motion.div>
             </Card>
         </>
